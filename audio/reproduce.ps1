@@ -6,11 +6,8 @@
 $ErrorActionPreference = 'Stop'
 $out = [IO.Directory]::CreateDirectory($OutputDirectory).FullName
 $tempDir = [IO.Directory]::CreateDirectory((Join-Path ([IO.Path]::GetTempPath()) ('voice-demo-' + [guid]::NewGuid()))).FullName
-$text = 'Утром я вышла на пустую набережную. Вода ещё спала. И только где-то за мостом перекликались первые трамваи.'
 try {
-    $raw = Join-Path $tempDir 'voice.wav'
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot\tools\voice.ps1" -OutputPath $raw -SpokenText $text
-    if ($LASTEXITCODE) { throw 'Speech synthesis failed.' }
+    $raw = Join-Path $PSScriptRoot 'denis.wav'
     & $Python "$PSScriptRoot\tools\render.py" $raw $out $tempDir
     if ($LASTEXITCODE) { throw 'Audio rendering failed.' }
     if ($Video) {
@@ -18,7 +15,7 @@ try {
         if ($LASTEXITCODE) { throw 'Video rendering failed.' }
     }
 } finally {
-    foreach ($name in @('voice.wav', 'before.png', 'after.png')) {
+    foreach ($name in @('before.png', 'after.png')) {
         [IO.File]::Delete((Join-Path $tempDir $name))
     }
     [IO.Directory]::Delete($tempDir, $false)
