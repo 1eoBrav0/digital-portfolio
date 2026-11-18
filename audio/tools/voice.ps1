@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)][string]$OutputPath,
     [Parameter(Mandatory = $true)][string]$SpokenText,
     [string]$VoiceName = 'Microsoft Irina'
