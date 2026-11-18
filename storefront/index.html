@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ef">
+  <meta name="description" content="Демонстрационная витрина акустики Тональ. Подбор и сравнение моделей для дома.">
+  <title>Тональ — акустика для дома</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="catalog.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#catalog">Перейти к каталогу</a>
+  <header class="page-header shell">
+    <a class="brand" href="#top" aria-label="Тональ, начало страницы">
+      <span class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>Тональ
+    </a>
+    <nav aria-label="Основная навигация">
+      <a class="catalog-link" href="#catalog">Каталог</a>
+      <button class="compare-open" id="open-compare" type="button">
+        <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
+        Сравнение <span id="selection-count">0</span>
+      </button>
+    </nav>
+  </header>
+  <main id="top" class="shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow hero-kicker"><span class="kicker-rule"></span> Акустика для дома</p>
+        <h1 id="hero-title">У звука<br>есть <em>форма.</em></h1>
+        <p class="intro">Пять акустических систем для разных комнат и способов слушать музыку.</p>
+        <a class="hero-button" href="#catalog">Смотреть коллекцию <span aria-hidden="true">↘</span></a>
+      </div>
+      <figure class="feature">
+        <img id="feature-image" src="assets/field-02.jpg" width="1536" height="1024" alt="Колонка Тембр 02 в отделке из ореха на оранжевом фоне" fetchpriority="high">
+        <figcaption>
+          <div class="featured-name"><span class="indicator"></span><span id="feature-title">Тембр 02</span><span class="feature-finish" id="feature-finish">Орех</span></div>
+          <div class="slide-controls">
+            <span class="index" id="slide-index" aria-hidden="true">02 / 05</span>
+            <button type="button" id="prev-slide" aria-label="Предыдущая модель">←</button>
+            <button type="button" id="next-slide" aria-label="Следующая модель">→</button>
+          </div>
+        </figcaption>
+      </figure>
+      <span class="sr-only" role="status" id="slide-announcement"></span>
+    </section>
+    <section class="collection" id="catalog" aria-labelledby="catalog-title">
+      <div class="catalog-heading">
+        <div>
+          <div class="eyebrow label"><span class="kicker-rule"></span> Каталог</div>
+          <h2 id="catalog-title">Акустические системы</h2>
+        </div>
+        <span class="unit">Цена за одну колонку</span>
+      </div>
+      <div class="filterbar" role="group" aria-label="Фильтр по типу акустики">
+        <button type="button" data-filter="all" aria-pressed="true">Все <span>5</span></button>
+        <button type="button" data-filter="shelf" aria-pressed="false">Полочные</button>
+        <button type="button" data-filter="floor" aria-pressed="false">Напольные</button>
+        <button type="button" data-filter="compact" aria-pressed="false">Компактные</button>
+      </div>
+      <p class="sr-only" id="result-count" role="status"></p>
+      <div class="grid" id="product-grid"></div>
+      <noscript><p>Для подбора и сравнения моделей включите JavaScript в браузере.</p></noscript>
+    </section>
+  </main>
+  <footer class="page-footer shell">
+    <span class="brand footer-brand"><span class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>Тональ</span>
+    <span>Демонстрационная витрина · Серафим Мельник</span>
+  </footer>
+  <dialog id="comparison" aria-labelledby="comparison-title">
+    <div class="dialog-top">
+      <div><div class="eyebrow label"><span class="kicker-rule"></span> Тональ</div><h2 id="comparison-title">Сравнение</h2></div>
+      <button type="button" class="close-dialog" id="close-dialog" aria-label="Закрыть сравнение">×</button>
+    </div>
+    <div id="comparison-body"></div>
+    <div class="dialog-bottom"><button type="button" class="back" id="back-to-catalog">К каталогу <span aria-hidden="true">↘</span></button></div>
+  </dialog>
+  <p class="sr-only" id="selection-announcement" role="status"></p>
+</body>
+</html>
