@@ -1,0 +1,105 @@
+{
+  "name": "Поиск заказов на FL.ru",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c1523749-2897-464c-a2a4-ae60b81686c6",
+      "name": "Проверить сейчас",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "215b0fb4-df76-4ad0-b761-3a1c8ccc5a5e",
+      "name": "Каждый час",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        190
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.fl.ru/rss/all.xml",
+        "options": {}
+      },
+      "id": "13ce27f7-02ab-4de4-9937-8f3cb219d713",
+      "name": "Лента FL.ru",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        60
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// FL.ru includes the budget and the «для всех» badge in some feed titles.\nconst topics = [\n  { name: 'Telegram-боты', match: /(?:telegram|телеграм(?:м)?|тг|чат)[\\s-]*(?:чат[\\s-]*)?бот|бот.{0,20}(?:telegram|телеграм)|chatbot|aiogram/i },\n  { name: 'Автоматизации', match: /n8n|автоматизац|автоматизир|webhook|вебхук|workflow automation/i },\n  { name: 'Сайты', match: /лендинг|сайт|в[её]рстк|сверстать|landing page|website|wordpress|tilda|тильд/i },\n  { name: 'Изображения и дизайн', match: /баннер|макет|обложк|иллюстрац|карточк.{0,12}товар|изображени|инфографик|ретуш|логотип|poster|illustration|banner|graphic design/i },\n  { name: 'Видео', match: /видео|ролик|монтаж.{0,12}(?:reels|рилс)|субтитр|video|motion design/i },\n];\n\nfunction plain(value) {\n  return String(value || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;|&#160;/gi, ' ')\n    .replace(/&amp;/gi, '&').replace(/\\s+/g, ' ').trim();\n}\n\nconst seen = new Set();\nconst matches = [];\nfor (const [index, item] of $input.all().entries()) {\n  const post = item.json;\n  const title = plain(post.title);\n  const description = plain(post.contentSnippet || post.description || post.content);\n  const demo = post.demo === true;\n  const link = String(post.link || '').trim();\n  const project = link.match(/^https?:\\/\\/(?:www\\.)?fl\\.ru\\/projects\\/(\\d+)(?:[/?#]|$)/i);\n  if (!demo && !project) continue;\n  const key = demo ? 'demo:' + title : project[1];\n  if (!title || seen.has(key)) continue;\n  const headings = topics.filter(topic => topic.match.test(title));\n  const found = headings.length ? headings : topics.filter(topic => topic.match.test(description));\n  if (!found.length) continue;\n  seen.add(key);\n\n  const badge = title.match(/\\(([^()]*)\\)\\s*$/)?.[1] || '';\n  const free = /(?:^|,)\\s*для всех\\s*(?:,|$)/i.test(badge);\n  const advertisedBudget = title.match(/бюджет\\s*:\\s*([^,;)]+)/i)?.[1]?.trim() || null;\n  const date = Date.parse(post.isoDate || post.pubDate || '');\n  matches.push({\n    free, titleMatch: headings.length > 0, time: Number.isFinite(date) ? date : 0, index,\n    card: {\n      источник: demo ? 'Учебный пример' : 'Лента FL.ru',\n      заказ: title, направления: found.map(topic => topic.name),\n      бюджет_клиента: advertisedBudget,\n      отклик: free ? 'В заголовке есть отметка «для всех»' : 'Стоимость уточняется в карточке заказа',\n      детали: description.slice(0, 800),\n      ссылка: demo ? null : link,\n      опубликовано: Number.isFinite(date) ? new Date(date).toISOString() : null,\n    },\n  });\n}\nmatches.sort((a, b) => Number(b.free) - Number(a.free)\n  || Number(b.titleMatch) - Number(a.titleMatch) || b.time - a.time);\nif (!matches.length) return [{ json: { результат: 'В этой выборке совпадений по навыкам нет.' } }];\nreturn matches.map(match => ({ json: match.card, pairedItem: { item: match.index } }));"
+      },
+      "id": "6be4a0d8-236a-4013-998c-3c9342b11661",
+      "name": "Подходящие заказы",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        530,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Проверить сейчас": {
+      "main": [
+        [
+          {
+            "node": "Лента FL.ru",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Каждый час": {
+      "main": [
+        [
+          {
+            "node": "Лента FL.ru",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Лента FL.ru": {
+      "main": [
+        [
+          {
+            "node": "Подходящие заказы",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none"
+  }
+}
