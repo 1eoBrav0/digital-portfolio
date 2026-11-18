@@ -37,23 +37,33 @@ def active_rms(samples, rate):
 
 
 def make_mixture(speech, rate):
-    start, end = np.flatnonzero(np.abs(speech) > 0.0006)[[0, -1]]
-    speech = speech[start : end + 1].copy()
     gain = min(10 ** (-20 / 20) / active_rms(speech, rate), 0.78 / np.max(np.abs(speech)))
-    voice = np.pad(speech * gain, (round(0.85 * rate), round(0.85 * rate)))
+    # Keep the whole take, including breaths and its natural ending.
+    voice = np.pad(speech * gain, (round(0.70 * rate), 0))
     t = np.arange(voice.size) / rate
-    hum = (0.055 * np.sin(2 * np.pi * 50 * t)
-           + 0.023 * np.sin(2 * np.pi * 100 * t + 0.2)
-           + 0.009 * np.sin(2 * np.pi * 150 * t + 0.5))
-    hiss = np.random.default_rng(713).normal(0.0, 0.019, voice.size)
-    return voice + hum + hiss
+    hum = (0.024 * np.sin(2 * np.pi * 50 * t)
+           + 0.009 * np.sin(2 * np.pi * 100 * t + 0.2)
+           + 0.0035 * np.sin(2 * np.pi * 150 * t + 0.5))
+    noise = np.random.default_rng(713).standard_normal(voice.size)
+    # A little short-range correlation softens the noise at high frequencies.
+    noise = np.convolve(noise, [0.57, 0.25, 0.12, 0.06], mode="same")
+    return voice + hum + 0.009 * noise / rms(noise)
 
 
 def restore(mixture, rate):
-    # 75% overlapping Hann windows; the first 0.70 s contain room tone only.
-    nfft, hop = 512, 128
+    # Measure harmonic amplitude and phase from the lead-in of the noisy WAV.
+    t = np.arange(mixture.size) / rate
+    harmonics = np.column_stack([
+        fn(2 * np.pi * hz * t) for hz in (50, 100, 150) for fn in (np.cos, np.sin)
+    ])
+    lead = slice(round(0.06 * rate), round(0.64 * rate))
+    amplitudes = np.linalg.lstsq(harmonics[lead], mixture[lead], rcond=None)[0]
+    dehummed = mixture - harmonics @ amplitudes
+    # Approximately 40 ms frequency analysis with 75% Hann-window overlap.
+    nfft = 2 ** round(np.log2(0.040 * rate))
+    hop = nfft // 4
     win = np.hanning(nfft)
-    padded = np.pad(mixture, (nfft, nfft + hop))
+    padded = np.pad(dehummed, (nfft, nfft + hop))
     starts = np.arange(0, len(padded) - nfft + 1, hop)
     frame_index = starts[:, None] + np.arange(nfft)
     freq = np.fft.rfftfreq(nfft, 1 / rate)
@@ -65,10 +75,10 @@ def restore(mixture, rate):
     kernel = [0.12, 0.23, 0.30, 0.23, 0.12]
     padded_power = np.pad(power, ((2, 2), (0, 0)), mode="edge")
     local_power = sum(k * padded_power[i : i + len(power)] for i, k in enumerate(kernel))
-    gain = np.maximum(0.10, 1 - 2.2 * noise / (local_power + 1e-12))
+    gain = np.maximum(0.16, 1 - 1.8 * noise / (local_power + 1e-12))
     gain = np.pad(gain, ((0, 0), (1, 1)), mode="edge")
     gain = 0.15 * gain[:, :-2] + 0.70 * gain[:, 1:-1] + 0.15 * gain[:, 2:]
-    highpass = 1 / np.sqrt(1 + (85 / np.maximum(freq, 0.001)) ** 8)
+    highpass = 1 / np.sqrt(1 + (55 / np.maximum(freq, 0.001)) ** 8)
     filtered = np.fft.irfft(spectra * gain * highpass, n=nfft, axis=1) * win
     recovered = np.zeros_like(padded)
     weights = np.zeros_like(padded)
@@ -76,9 +86,7 @@ def restore(mixture, rate):
         recovered[start : start + nfft] += frame
         weights[start : start + nfft] += win**2
     recovered = (recovered / np.maximum(weights, 1e-9))[nfft : nfft + len(mixture)]
-    gain = min(10 ** (-20 / 20) / active_rms(recovered, rate),
-               10 ** (-1.5 / 20) / np.max(np.abs(recovered)))
-    return recovered * gain
+    return recovered
 
 
 def db(level):
@@ -131,11 +139,11 @@ def artwork(path, before, after, info, stage=None):
     text(127, 62, "СЕРАФИМ МЕЛЬНИК", 26, PAPER, "mono")
     text(1128, 62, "АУДИО  /  ДЕМО", 26, SOFT, "mono", "rt")
     line(72, 129, 1128, 129, RULE, 2)
-    title = "Речь для подкаста" if stage is None else ("До обработки" if stage == 0 else "После обработки")
+    title = "Очистка голоса" if stage is None else ("До обработки" if stage == 0 else "После обработки")
     title_size = 102 if stage is None else 99
     text(67, 192, title, title_size, PAPER, "bold")
-    sub = ("Гул 50 Гц и широкополосный шум" if stage is None else
-           ("Исходная дорожка с гулом и шумом" if stage == 0 else "Та же запись после шумоподавления"))
+    sub = ("Русская речь · гул 50 Гц и фоновый шум" if stage is None else
+           ("К записи добавлены гул и фоновый шум" if stage == 0 else "Та же фраза после шумоподавления"))
     text(73, 333, sub, 40, SOFT)
     duration = info["duration_seconds"]
     text(73, 444, "ДВЕ ВЕРСИИ ОДНОЙ ЗАПИСИ", 23, SOFT, "mono")
@@ -158,7 +166,7 @@ def artwork(path, before, after, info, stage=None):
     text(865, 981, "→", 37, SOFT, "regular", "mt")
     text(1128, 965, a, 54, AFTER, "bold", "rt")
     line(72, 1109, 1128, 1109, RULE)
-    text(73, 1132, "СИНТЕТИЧЕСКАЯ РЕЧЬ", 22, SOFT, "mono")
+    text(73, 1132, "ГОЛОС ДЕНИСА  /  OPEN HOME FOUNDATION  /  CC0", 22, SOFT, "mono")
     text(1128, 1132, "16-БИТ PCM", 22, SOFT, "mono", "rt")
     art.save(path, optimize=True)
 
@@ -171,7 +179,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     rate, speech = read_wave(args.voice)
     write_wave(args.output / "before.wav", rate, make_mixture(speech, rate))
-    # Restore the written 16-bit input file, without using the clean TTS signal.
+    # The restoration stage only receives samples from the written noisy mix.
     _, before = read_wave(args.output / "before.wav")
     write_wave(args.output / "after.wav", rate, restore(before, rate))
     _, after = read_wave(args.output / "after.wav")
