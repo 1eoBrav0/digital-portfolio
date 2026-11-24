@@ -1,0 +1,9 @@
+{
+  "name": "ser-demand-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Three original portfolio demos based on a small freelance demand sample",
+  "scripts": {"assets":"node build-assets.mjs", "preview":"node preview.mjs"},
+  "devDependencies": {"sharp":"^0.34.5"}
+}

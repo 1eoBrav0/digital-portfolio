@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+const root=path.dirname(fileURLToPath(import.meta.url));
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const links=[...html.matchAll(/(?:href|src)="([^"]+)"/g)].map(m=>m[1]).filter(url=>!url.startsWith('#')&&!/^[a-z]+:/.test(url));
+for(const link of links)assert.ok(fs.existsSync(path.join(root,link)),`Missing ${link}`);
+const research=JSON.parse(fs.readFileSync(path.join(root,'research.json'),'utf8'));
+for(const group of research.ranking)assert.equal(group.count,group.fl.length+group.youdo.length);
+const ids=research.ranking.flatMap(g=>[...g.fl,...g.youdo]);assert.equal(ids.length,new Set(ids).size);
+const report=JSON.parse(fs.readFileSync(path.join(root,'order-bridge/example-result/report.json'),'utf8'));
+assert.equal(report.orders.length,3);assert.equal(report.receiver_count,3);
+assert.equal(report.orders.reduce((s,o)=>s+o.total_kopecks,0),702000);
+assert.ok(report.orders.every(o=>o.status==='sent'&&o.attempts===2));
+assert.equal(report.events.filter(e=>e.status==='rejected').length,4);
+console.log(`OK: ${links.length} local links, ranking consistency, demo output totals and delivery states.`);
