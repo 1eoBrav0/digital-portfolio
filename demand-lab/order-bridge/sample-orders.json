@@ -1,0 +1,10 @@
+[
+  {"id":"WEB-1041","currency":"RUB","items":[{"sku":"CUP-01","qty":2},{"sku":"FILTER-02","qty":1}]},
+  {"id":"WEB-1042","currency":"RUB","items":[{"sku":"BEANS-03","qty":3}]},
+  {"id":"WEB-1041","currency":"RUB","items":[{"sku":"FILTER-02","qty":1},{"sku":"CUP-01","qty":2}]},
+  {"id":"WEB-1043","currency":"RUB","items":[{"sku":"FILTER-02","qty":2}]},
+  {"id":"WEB-1042","currency":"RUB","items":[{"sku":"BEANS-03","qty":4}]},
+  {"id":"WEB-1044","currency":"RUB","items":[{"sku":"MISSING","qty":1}]},
+  {"id":"WEB-1045","currency":"RUB","items":[{"sku":"CUP-01","qty":30}]},
+  {"id":"WEB-1046","currency":"RUB","items":[{"sku":"CUP-01","qty":1.5}]}
+]
